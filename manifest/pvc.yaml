@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sample-pvc-1 # PVCの名前。この名前でPodなどから参照できる
+spec:
+  accessModes:
+    - ReadWriteOnce  # アクセスモード。1つのノードからのみ読み書き可能（他のノードからはアクセス不可）
+  volumeMode: Filesystem  # ボリュームのモード。ファイルシステムとしてマウント
+  resources:
+    requests:
+      storage: 1Gi  # 必要なストレージ容量 1ギガバイト

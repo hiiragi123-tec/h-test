@@ -1,0 +1,20 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: app-sample-trigger  # ★トリガーの名前
+spec:
+  serviceAccountName: pipeline  # Tekton の Pipeline を実行するためのサービスアカウント
+  interceptors:
+    - ref:
+        name: "github"
+      params:
+        - name: "secretRef"  # Webhook の署名検証に使う Secret の指定
+          value:
+            secretName: app-pipeline-sample-github-secret  # ★Secret の名前(webhook-secret.yaml で定義)
+            secretKey: secretToken
+        - name: "eventTypes"  # 受け付ける GitHub イベントの種類
+          value: ["push"]  # ★"push" イベントの時だけパイプラインを実行
+  bindings:
+    - ref: app-sample-trigger # ★トリガーバインディングの名前 (binding-trigger.yaml で定義)
+  template:
+    ref: app-sample-trigger  # ★トリガーテンプレートの名前 (template-trigger.yaml で定義)

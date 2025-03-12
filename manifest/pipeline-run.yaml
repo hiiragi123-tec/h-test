@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: app-pipeline-sample- # 実行ごとにランダムな名前が付与される
+spec:
+  params:
+    - name: IMAGE_NAME
+      value: 'jp.icr.io/cti-roks-training/app-pipeline-sample:latest'
+    - name: GIT_REPO
+      value: 'https://github.com/cti-roks/cicd-demo-sample.git'
+    - name: GIT_REVISION
+      value: main
+  pipelineRef:
+    name: app-pipeline-sample
+  workspaces:
+    - name: workspace
+      persistentVolumeClaim:
+        claimName: sample-pvc-1

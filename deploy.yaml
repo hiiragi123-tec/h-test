@@ -1,0 +1,50 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: app-pipeline-sample   # Deploymentの名前
+spec:
+  replicas: 1  # Podのレプリカ数（1つのPodを起動）
+  selector:
+    matchLabels:
+      app: app-pipeline-sample  # このラベルを持つPodを管理
+  template:
+    metadata:
+      labels:
+        app: app-pipeline-sample  # 作成されるPodのラベル（Serviceと連携）
+    spec:
+      containers:
+        - name: app-pipeline-sample  # コンテナ名
+          image: jp.icr.io/cti-roks-training/app-pipeline-sample:latest  # 使用するコンテナイメージ
+          imagePullPolicy: Always  # 常に最新のイメージを取得
+          ports:
+            - name: http
+              containerPort: 8080  # コンテナ内部でリスニングするポート
+              protocol: TCP  # 使用するプロトコル
+      imagePullSecrets:
+        - name: all-icr-io  # プライベートレジストリからイメージを取得するための認証情報
+---
+kind: Service # Service（アプリへのアクセスを提供）
+apiVersion: v1
+metadata:
+  name: app-pipeline-sample  # Service 名（Routeで指定する）
+spec:
+  ports:
+    - name: http-8080  # ポートの名前（Routeと連携）
+      port: 8080  # Serviceがリッスンするポート
+      protocol: TCP # プロトコル
+      targetPort: 8080  # 対応するPod内のポート
+  selector:
+    app: app-pipeline-sample  # app-pipeline-sampleラベルのついたPodにトラフィックを送る
+---
+kind: Route # Route（外部からのアクセスを提供）
+apiVersion: route.openshift.io/v1
+metadata:
+  name: app-pipeline-sample  # Routeの名前（外部アクセス用）
+spec:
+  to:
+    kind: Service
+    name: app-pipeline-sample  # Service にルーティング
+  tls:
+    termination: edge  # HTTPSの終端を OpenShift Router で処理
+  port:
+    targetPort: http-8080 # Serviceのポート（名前で指定）

@@ -1,0 +1,8 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: app-sample-trigger  # EventListener の名前
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - triggerRef: app-sample-trigger # ★トリガーの名前 (trigger.yaml で定義)

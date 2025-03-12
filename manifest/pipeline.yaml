@@ -1,0 +1,83 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-pipeline-sample #パイプラインの名前
+spec:
+  params: # パイプライン全体で使用するパラメータの定義
+    - default: 'jp.icr.io/cti-roks-training/app-pipeline-sample:latest'
+      name: IMAGE_NAME # ★ビルドするイメージのリポジトリ名
+      type: string
+    - default: 'https://github.com/cti-roks/cicd-demo-sample.git'
+      name: GIT_REPO  # ★クローンするGitリポジトリのURL
+      type: string
+    - default: main
+      name: GIT_REVISION  # チェックアウトするGitのブランチ
+      type: string
+  tasks: # 実行するタスクの定義
+    - name: fetch-repository  # Gitリポジトリをクローンするタスク
+      params:
+        - name: URL
+          value: $(params.GIT_REPO)  # GitリポジトリのURLを指定
+        - name: REVISION
+          value: $(params.GIT_REVISION)  # クローンするブランチを指定
+        - name: SUBDIRECTORY
+          value: ''  # ルートディレクトリにクローン
+        - name: DELETE_EXISTING
+          value: 'true'  # 既存のディレクトリがあれば削除
+      taskRef:  # 既存の Task を参照（Git クローンを実行）
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone  # `git-clone` タスクを使用
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      workspaces:
+        - name: output
+          workspace: workspace  # `workspace` にクローンする
+    - name: build  # コンテナイメージをビルドするタスク
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_NAME)  # 作成するコンテナイメージ名
+        - name: TLS_VERIFY
+          value: 'false'  # TLS証明書の検証を無効化
+        - name: IMAGE_PUSH
+          value: 'true'  # イメージをリポジトリへプッシュ
+      runAfter:
+        - fetch-repository
+      taskRef:
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah  # `buildah` タスクを使用してビルド
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      workspaces:
+        - name: source
+          workspace: workspace  # `workspace` 内のソースコードを使用
+    - name: deploy  # アプリケーションをデプロイするタスク
+      params:
+        - name: SCRIPT
+          value: |
+            oc apply -f /workspace/manifest_dir/deploy.yaml  # OpenShift にデプロイ適用
+            #oc rollout restart deployment app-pipeline-sample # 最新のimageを使ったデプロイの再起動、初回deploy完成後、コメントアウトを外してください。
+      runAfter:
+        - build
+      taskRef:
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: openshift-client  # `openshift-client` タスクを使用してデプロイ
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      workspaces:
+        - name: manifest_dir
+          workspace: workspace # `workspace` 内のマニフェストを適用
+  workspaces:
+    - name: workspace  # すべてのタスクで共通のワークスペース
+

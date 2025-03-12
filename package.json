@@ -1,0 +1,7 @@
+{
+  "name": "app-pipeline-sample",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  }
+}

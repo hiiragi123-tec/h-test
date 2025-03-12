@@ -1,0 +1,33 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: app-sample-trigger  # トリガーテンプレートの名前
+spec:
+  params:  # PipelineRun を生成する際に受け取るパラメータの定義
+    - description: The git repository url
+      name: git-repo-url
+    - default: main
+      description: The git revision
+      name: git-revision
+    - description: The name of the deployment to be created / patched
+      name: git-repo-name
+  resourcetemplates:  # 受け取ったパラメータを使って作成されるリソースのテンプレート
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun  # 実行するパイプラインの定義
+      metadata:
+        generateName: app-pipeline-sample-  # ★実行される PipelineRun の名前 (動的に生成)
+      spec:
+        params:
+          - name: GIT_REPO
+            value: $(tt.params.git-repo-url)
+          - name: GIT_REVISION
+            value: $(tt.params.git-revision)
+          - name: IMAGE_NAME
+            value: 'jp.icr.io/cti-roks-training/app-pipeline-sample:latest' #★イメージの保存先
+        pipelineRef:
+          name: app-pipeline-sample #★pipeline name
+        serviceAccountName: pipeline
+        workspaces:
+          - name: workspace
+            persistentVolumeClaim:
+              claimName: sample-pvc-1
